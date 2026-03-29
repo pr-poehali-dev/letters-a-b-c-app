@@ -1,0 +1,16 @@
+{
+  "tests": [
+    {
+      "name": "OPTIONS preflight",
+      "method": "OPTIONS",
+      "path": "/",
+      "expectedStatus": 200
+    },
+    {
+      "name": "Invalid key returns 400",
+      "method": "GET",
+      "path": "/?key=invalid",
+      "expectedStatus": 400
+    }
+  ]
+}

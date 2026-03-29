@@ -1,4 +1,5 @@
 {
+  "audio-serve": "https://functions.poehali.dev/20d2b520-f02e-4ee1-a2b5-c42c28ec5cdd",
   "audio-upload": "https://functions.poehali.dev/d60c0969-c3cd-4d2f-90b7-620f64ac9ffd",
   "audio-list": "https://functions.poehali.dev/4b0c28bc-b49e-4834-869b-d7228657df5d"
 }

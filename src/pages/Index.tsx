@@ -3,6 +3,7 @@ import Icon from "@/components/ui/icon";
 
 const UPLOAD_URL = "https://functions.poehali.dev/d60c0969-c3cd-4d2f-90b7-620f64ac9ffd";
 const LIST_URL = "https://functions.poehali.dev/4b0c28bc-b49e-4834-869b-d7228657df5d";
+const SERVE_URL = "https://functions.poehali.dev/20d2b520-f02e-4ee1-a2b5-c42c28ec5cdd";
 
 const AUDIO_SLOTS = [
   { key: "a", label: 'Буква "А"' },
@@ -68,10 +69,11 @@ function speakFallback(text: string, onEnd?: () => void) {
   window.speechSynthesis.speak(utter);
 }
 
-function playAudio(url: string | null, fallbackText: string): Promise<void> {
+function playAudio(key: string | null, fallbackText: string): Promise<void> {
   return new Promise((resolve) => {
-    if (!url) { speakFallback(fallbackText, resolve); return; }
-    const audio = new Audio(url + "?t=" + Date.now());
+    if (!key) { speakFallback(fallbackText, resolve); return; }
+    const url = `${SERVE_URL}?key=${key}&t=${Date.now()}`;
+    const audio = new Audio(url);
     audio.onended = () => resolve();
     audio.onerror = () => speakFallback(fallbackText, resolve);
     audio.play().catch(() => speakFallback(fallbackText, resolve));
@@ -108,12 +110,12 @@ export default function Index() {
       .then(r => r.json())
       .then(data => {
         const parsed = typeof data === "string" ? JSON.parse(data) : data;
-        // Добавляем cache-buster к каждому URL чтобы браузер не кешировал
-        const withBuster: Record<string, string | null> = {};
+        // Храним ключ если файл есть, null если нет
+        const result: Record<string, string | null> = {};
         for (const key in parsed) {
-          withBuster[key] = parsed[key] ? parsed[key] + "?t=" + Date.now() : null;
+          result[key] = parsed[key] ? key : null;
         }
-        setAudioUrls(withBuster);
+        setAudioUrls(result);
       })
       .catch(e => console.error("Audio list error", e));
   }, []);
