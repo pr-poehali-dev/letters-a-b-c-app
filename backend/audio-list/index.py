@@ -4,9 +4,11 @@ import boto3
 from botocore.exceptions import ClientError
 
 AUDIO_KEYS = ['a', 'b', 'v', 'petuh', 'banan', 'lastochka']
+IMAGE_KEYS = ['petuh', 'banan', 'lastochka']
+IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'webp']
 
 def handler(event: dict, context) -> dict:
-    """Возвращает список загруженных аудиофайлов с их CDN-ссылками."""
+    """Возвращает список загруженных аудиофайлов и картинок с CDN-ссылками."""
 
     if event.get('httpMethod') == 'OPTIONS':
         return {
@@ -27,29 +29,30 @@ def handler(event: dict, context) -> dict:
         aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'],
     )
 
-    # Выводим все файлы в бакете для отладки
-    try:
-        all_objects = s3.list_objects_v2(Bucket='files', Prefix='audio/')
-        found = [o['Key'] for o in all_objects.get('Contents', [])]
-        print(f"[DEBUG] Files in S3 audio/: {found}")
-    except Exception as e:
-        print(f"[DEBUG] list_objects error: {e}")
-        found = []
-
-    result = {}
+    audio = {}
     for key in AUDIO_KEYS:
         s3_key = f'audio/{key}.mp3'
         try:
             s3.head_object(Bucket='files', Key=s3_key)
-            cdn_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/files/{s3_key}"
-            result[key] = cdn_url
-            print(f"[DEBUG] Found: {s3_key} -> {cdn_url}")
-        except ClientError as e:
-            print(f"[DEBUG] Not found: {s3_key} -> {e.response['Error']['Code']}")
-            result[key] = None
+            audio[key] = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/files/{s3_key}"
+        except ClientError:
+            audio[key] = None
+
+    images = {}
+    for key in IMAGE_KEYS:
+        found_url = None
+        for ext in IMAGE_EXTS:
+            s3_key = f'images/{key}.{ext}'
+            try:
+                s3.head_object(Bucket='files', Key=s3_key)
+                found_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/files/{s3_key}"
+                break
+            except ClientError:
+                continue
+        images[key] = found_url
 
     return {
         'statusCode': 200,
         'headers': {'Access-Control-Allow-Origin': '*'},
-        'body': json.dumps(result)
+        'body': json.dumps({'audio': audio, 'images': images})
     }
