@@ -6,6 +6,8 @@ const PAGES = [
     letter: "А",
     word: "петух",
     wordDisplay: "Петух",
+    letterAudio: "/audio/a.mp3",
+    wordAudio: "/audio/petuh.mp3",
     image: "https://cdn.poehali.dev/projects/56129175-d3b6-45a1-9e31-141730f2c62e/files/97939e00-e7d2-4001-aaea-5b1f072ca113.jpg",
     bg: "from-orange-400 via-pink-400 to-rose-400",
     bgSolid: "#FF6B9D",
@@ -18,6 +20,8 @@ const PAGES = [
     letter: "Б",
     word: "банан",
     wordDisplay: "Банан",
+    letterAudio: "/audio/b.mp3",
+    wordAudio: "/audio/banan.mp3",
     image: "https://cdn.poehali.dev/projects/56129175-d3b6-45a1-9e31-141730f2c62e/files/2d40b47d-599e-4196-8b7d-fc19ddb0c451.jpg",
     bg: "from-yellow-400 via-lime-400 to-green-400",
     bgSolid: "#7BC67E",
@@ -30,6 +34,8 @@ const PAGES = [
     letter: "В",
     word: "ласточка",
     wordDisplay: "Ласточка",
+    letterAudio: "/audio/v.mp3",
+    wordAudio: "/audio/lastochka.mp3",
     image: "https://cdn.poehali.dev/projects/56129175-d3b6-45a1-9e31-141730f2c62e/files/c937470b-b3d4-4be3-8d14-013067e9f043.jpg",
     bg: "from-sky-400 via-blue-400 to-indigo-400",
     bgSolid: "#5C9BD6",
@@ -40,13 +46,30 @@ const PAGES = [
   },
 ];
 
-function speak(text: string) {
-  window.speechSynthesis.cancel();
-  const utter = new SpeechSynthesisUtterance(text);
-  utter.lang = "ru-RU";
-  utter.rate = 0.85;
-  utter.pitch = 1.2;
-  window.speechSynthesis.speak(utter);
+function playAudio(audioPath: string, fallbackText: string): Promise<void> {
+  return new Promise((resolve) => {
+    const audio = new Audio(audioPath);
+    audio.onended = () => resolve();
+    audio.onerror = () => {
+      // Файл не найден — используем синтез речи
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(fallbackText);
+      utter.lang = "ru-RU";
+      utter.rate = 0.85;
+      utter.pitch = 1.2;
+      utter.onend = () => resolve();
+      window.speechSynthesis.speak(utter);
+    };
+    audio.play().catch(() => {
+      window.speechSynthesis.cancel();
+      const utter = new SpeechSynthesisUtterance(fallbackText);
+      utter.lang = "ru-RU";
+      utter.rate = 0.85;
+      utter.pitch = 1.2;
+      utter.onend = () => resolve();
+      window.speechSynthesis.speak(utter);
+    });
+  });
 }
 
 export default function Index() {
@@ -84,13 +107,13 @@ export default function Index() {
   };
 
   const handleLetterClick = () => {
-    speak(page.letter);
+    playAudio(page.letterAudio, page.letter);
     setLetterAnim(true);
     setTimeout(() => setLetterAnim(false), 600);
   };
 
   const handleImageClick = () => {
-    speak(page.word);
+    playAudio(page.wordAudio, page.word);
     setImageAnim(true);
     setTimeout(() => setImageAnim(false), 600);
   };
@@ -282,9 +305,9 @@ export default function Index() {
 
         {/* Repeat button */}
         <button
-          onClick={() => {
-            speak(page.letter);
-            setTimeout(() => speak(page.word), 1200);
+          onClick={async () => {
+            await playAudio(page.letterAudio, page.letter);
+            await playAudio(page.wordAudio, page.word);
           }}
           className="mt-5 flex items-center gap-2 px-5 py-3 rounded-full font-nunito font-bold text-white shadow-lg transition-all active:scale-95 hover:scale-105 cursor-pointer"
           style={{
