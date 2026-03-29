@@ -1,0 +1,10 @@
+{
+  "tests": [
+    {
+      "name": "GET audio list returns 200",
+      "method": "GET",
+      "path": "/",
+      "expectedStatus": 200
+    }
+  ]
+}
