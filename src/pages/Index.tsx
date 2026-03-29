@@ -95,7 +95,13 @@ export default function Index() {
         const audioResult: Record<string, string | null> = {};
         for (const key in audio) audioResult[key] = audio[key] ? key : null;
         setAudioKeys(audioResult);
-        setImageUrls(images);
+        const imageResult: Record<string, string | null> = {};
+        for (const key in images) {
+          imageResult[key] = images[key]
+            ? `${SERVE_URL}?type=image&key=${key}&t=${Date.now()}`
+            : null;
+        }
+        setImageUrls(imageResult);
       })
       .catch(e => console.error("Load error", e));
   }, []);
@@ -155,7 +161,8 @@ export default function Index() {
       const parsed = typeof json === "string" ? JSON.parse(json) : json;
       if (parsed.url) {
         setUploadDone(p => ({ ...p, [`img_${slotKey}`]: true }));
-        setImageUrls(p => ({ ...p, [slotKey]: parsed.url + "?t=" + Date.now() }));
+        // Показываем через прокси чтобы обойти CORS
+        setImageUrls(p => ({ ...p, [slotKey]: `${SERVE_URL}?type=image&key=${slotKey}&t=${Date.now()}` }));
       }
     } catch (e) { console.error("Image upload error", e); }
     setUploading(p => ({ ...p, [`img_${slotKey}`]: false }));
@@ -163,7 +170,7 @@ export default function Index() {
 
   const slideClass = slideDir === "left" ? "animate-slide-left" : slideDir === "right" ? "animate-slide-right" : "";
 
-  const getPageImage = (wordKey: string) => imageUrls[wordKey] ? imageUrls[wordKey] + "?t=1" : DEFAULT_IMAGES[wordKey];
+  const getPageImage = (wordKey: string) => imageUrls[wordKey] || DEFAULT_IMAGES[wordKey];
 
   if (showAdmin) {
     return (

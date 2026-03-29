@@ -8,7 +8,7 @@ IMAGE_KEYS = ['petuh', 'banan', 'lastochka']
 IMAGE_EXTS = ['jpg', 'jpeg', 'png', 'webp']
 
 def handler(event: dict, context) -> dict:
-    """Возвращает список загруженных аудиофайлов и картинок с CDN-ссылками."""
+    """Возвращает наличие аудио и картинок (true/false для каждого ключа)."""
 
     if event.get('httpMethod') == 'OPTIONS':
         return {
@@ -31,28 +31,29 @@ def handler(event: dict, context) -> dict:
 
     audio = {}
     for key in AUDIO_KEYS:
-        s3_key = f'audio/{key}.mp3'
         try:
-            s3.head_object(Bucket='files', Key=s3_key)
-            audio[key] = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/files/{s3_key}"
+            s3.head_object(Bucket='files', Key=f'audio/{key}.mp3')
+            audio[key] = True
         except ClientError:
-            audio[key] = None
+            audio[key] = False
 
     images = {}
     for key in IMAGE_KEYS:
-        found_url = None
+        found = False
         for ext in IMAGE_EXTS:
-            s3_key = f'images/{key}.{ext}'
             try:
-                s3.head_object(Bucket='files', Key=s3_key)
-                found_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/files/{s3_key}"
+                s3.head_object(Bucket='files', Key=f'images/{key}.{ext}')
+                found = True
                 break
             except ClientError:
                 continue
-        images[key] = found_url
+        images[key] = found
 
     return {
         'statusCode': 200,
-        'headers': {'Access-Control-Allow-Origin': '*'},
+        'headers': {
+            'Access-Control-Allow-Origin': '*',
+            'Cache-Control': 'no-store',
+        },
         'body': json.dumps({'audio': audio, 'images': images})
     }
