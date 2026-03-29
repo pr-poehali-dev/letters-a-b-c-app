@@ -46,28 +46,29 @@ const PAGES = [
   },
 ];
 
+function speakFallback(text: string, onEnd?: () => void) {
+  window.speechSynthesis.cancel();
+  // Для одиночных букв — растягиваем произношение повтором
+  const isSingleLetter = text.length === 1;
+  const spokenText = isSingleLetter ? `${text}...${text}...${text}` : text;
+  const utter = new SpeechSynthesisUtterance(spokenText);
+  utter.lang = "ru-RU";
+  utter.rate = isSingleLetter ? 0.5 : 0.7;
+  utter.pitch = 1.1;
+  utter.volume = 1.0;
+  if (onEnd) utter.onend = onEnd;
+  window.speechSynthesis.speak(utter);
+}
+
 function playAudio(audioPath: string, fallbackText: string): Promise<void> {
   return new Promise((resolve) => {
     const audio = new Audio(audioPath);
     audio.onended = () => resolve();
     audio.onerror = () => {
-      // Файл не найден — используем синтез речи
-      window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(fallbackText);
-      utter.lang = "ru-RU";
-      utter.rate = 0.85;
-      utter.pitch = 1.2;
-      utter.onend = () => resolve();
-      window.speechSynthesis.speak(utter);
+      speakFallback(fallbackText, resolve);
     };
     audio.play().catch(() => {
-      window.speechSynthesis.cancel();
-      const utter = new SpeechSynthesisUtterance(fallbackText);
-      utter.lang = "ru-RU";
-      utter.rate = 0.85;
-      utter.pitch = 1.2;
-      utter.onend = () => resolve();
-      window.speechSynthesis.speak(utter);
+      speakFallback(fallbackText, resolve);
     });
   });
 }
@@ -109,13 +110,13 @@ export default function Index() {
   const handleLetterClick = () => {
     playAudio(page.letterAudio, page.letter);
     setLetterAnim(true);
-    setTimeout(() => setLetterAnim(false), 600);
+    setTimeout(() => setLetterAnim(false), 800);
   };
 
   const handleImageClick = () => {
     playAudio(page.wordAudio, page.word);
     setImageAnim(true);
-    setTimeout(() => setImageAnim(false), 600);
+    setTimeout(() => setImageAnim(false), 800);
   };
 
   const slideClass = slideDir === "left"
