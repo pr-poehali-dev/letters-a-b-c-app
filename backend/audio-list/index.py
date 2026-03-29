@@ -27,13 +27,25 @@ def handler(event: dict, context) -> dict:
         aws_secret_access_key=os.environ['AWS_SECRET_ACCESS_KEY'],
     )
 
+    # Выводим все файлы в бакете для отладки
+    try:
+        all_objects = s3.list_objects_v2(Bucket='files', Prefix='audio/')
+        found = [o['Key'] for o in all_objects.get('Contents', [])]
+        print(f"[DEBUG] Files in S3 audio/: {found}")
+    except Exception as e:
+        print(f"[DEBUG] list_objects error: {e}")
+        found = []
+
     result = {}
     for key in AUDIO_KEYS:
         s3_key = f'audio/{key}.mp3'
         try:
             s3.head_object(Bucket='files', Key=s3_key)
-            result[key] = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/files/{s3_key}"
-        except ClientError:
+            cdn_url = f"https://cdn.poehali.dev/projects/{os.environ['AWS_ACCESS_KEY_ID']}/files/{s3_key}"
+            result[key] = cdn_url
+            print(f"[DEBUG] Found: {s3_key} -> {cdn_url}")
+        except ClientError as e:
+            print(f"[DEBUG] Not found: {s3_key} -> {e.response['Error']['Code']}")
             result[key] = None
 
     return {
