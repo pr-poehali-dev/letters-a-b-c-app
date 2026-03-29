@@ -103,15 +103,22 @@ export default function Index() {
 
   const page = PAGES[currentPage];
 
-  useEffect(() => {
-    fetch(LIST_URL)
+  const loadAudioUrls = useCallback(() => {
+    fetch(LIST_URL + "?t=" + Date.now(), { cache: "no-store" })
       .then(r => r.json())
       .then(data => {
         const parsed = typeof data === "string" ? JSON.parse(data) : data;
-        setAudioUrls(parsed);
+        // Добавляем cache-buster к каждому URL чтобы браузер не кешировал
+        const withBuster: Record<string, string | null> = {};
+        for (const key in parsed) {
+          withBuster[key] = parsed[key] ? parsed[key] + "?t=" + Date.now() : null;
+        }
+        setAudioUrls(withBuster);
       })
-      .catch(() => {});
+      .catch(e => console.error("Audio list error", e));
   }, []);
+
+  useEffect(() => { loadAudioUrls(); }, [loadAudioUrls]);
 
   const goTo = useCallback((index: number) => {
     if (index === currentPage) return;
@@ -155,8 +162,9 @@ export default function Index() {
       const json = await res.json();
       const parsed = typeof json === "string" ? JSON.parse(json) : json;
       if (parsed.url) {
-        setAudioUrls(p => ({ ...p, [slotKey]: parsed.url }));
         setUploadDone(p => ({ ...p, [slotKey]: true }));
+        // Перезагружаем весь список с сервера без кеша
+        setTimeout(() => loadAudioUrls(), 500);
       }
     } catch (e) {
       console.error("Upload error", e);
@@ -178,6 +186,14 @@ export default function Index() {
             <Icon name="ArrowLeft" size={20} className="text-white" />
           </button>
           <h1 className="font-caveat font-bold text-white text-2xl">Загрузка аудио</h1>
+          <button
+            onClick={loadAudioUrls}
+            className="ml-auto w-9 h-9 rounded-full flex items-center justify-center cursor-pointer"
+            style={{ background: "rgba(255,255,255,0.2)" }}
+            title="Обновить список"
+          >
+            <Icon name="RefreshCw" size={16} className="text-white" />
+          </button>
         </div>
 
         <div className="flex-1 overflow-y-auto px-4 pb-8 flex flex-col gap-3">
